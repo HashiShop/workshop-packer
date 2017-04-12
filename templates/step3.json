@@ -1,0 +1,59 @@
+{
+    "variables": {
+        "aws_access_key": "{{env `PACKER_VAR_AWS_ACCESS_KEY`}}",
+        "aws_secret_key": "{{env `PACKER_VAR_AWS_SECRET_KEY`}}",
+        "dockerhub_username": "{{env `PACKER_VAR_DOCKERHUB_USERNAME`}}"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "access_key": "{{user `aws_access_key`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "region": "eu-west-1",
+            "source_ami": "ami-405f7226",
+            "instance_type": "t2.micro",
+            "ssh_username": "ubuntu",
+            "ami_name": "step3_{{timestamp}}"
+        },
+        {
+            "type": "docker",
+            "image": "ubuntu:16.04",
+            "commit": true,
+            "changes": [
+                "EXPOSE 6379",
+                "CMD [\"redis-server\"]"
+            ]
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "script": "provisioning/shell/sudo.sh",
+            "only": [
+                "docker"
+            ]
+        },
+        {
+            "type": "shell",
+            "script": "provisioning/shell/redis.sh"
+        }
+    ],
+    "post-processors": [
+        [
+            {
+                "type": "docker-tag",
+                "repository": "{{user `dockerhub_username`}}/redis",
+                "tag": "workshop",
+                "only": [
+                    "docker"
+                ]
+            },
+            {
+                "type": "docker-push",
+                "only": [
+                    "docker"
+                ]
+            }
+        ]
+    ]
+}
