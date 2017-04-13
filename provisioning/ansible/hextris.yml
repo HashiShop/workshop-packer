@@ -1,0 +1,30 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Install required packages
+      package:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - git
+
+  roles:
+    - role: vendor.jdauphant.nginx
+      nginx_http_params:
+        - access_log "/dev/stdout"
+      nginx_sites:
+        default:
+          - listen 80
+          - server_name _
+          - root "/var/www/hextris"
+          - index index.html
+
+  tasks:
+    - name: get hextris sources
+      git:
+        repo: https://github.com/Hextris/hextris.git
+        dest: /var/www/hextris
+        version: master
